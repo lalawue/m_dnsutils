@@ -13,7 +13,7 @@
  * qid: DNS query id, make sure > 0
  * domain: '0' terminated string
  * --
- * return: 0 for error, or valid query_size > 0
+ * return: valid query_size > 0 for ok, <= 0 for error and indicate error type
  */
 int mdns_query_build(uint8_t *buf, unsigned short qid, const char *domain);
 
@@ -32,7 +32,7 @@ int mdns_response_fetch_qid(const uint8_t *buf, int content_len);
  * domain: '0' terminated string for compare
  * out_ipv4: 4 byte buffer for output ipv4
  * --
- * return: 0 for error, 1 for ok
+ * return: 1 for ok, <= 0 for error and indicate error type
  */
 int mdns_response_parse(uint8_t *buf,
                         int content_len,

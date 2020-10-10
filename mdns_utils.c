@@ -115,11 +115,16 @@ _response_check_header(const uint8_t *buf) {
        (rh->ancount == 0 && code == 0) ||
        (code >= 6 && code <= 15))
    {
-      return 0;
+      return -10;
    }
 
    if (code>=1 && code<=5) {
-      return 0;
+      /* 1. DNS query format error */
+      /* 2. internal DNS server failure */
+      /* 3. domain name doesn't exist */
+      /* 4. type of query not supported by DNS server */
+      /* 5. requested operation refused by DNS server */
+      return -(10 + code);
    }
 
    return 1;   
@@ -138,7 +143,7 @@ _response_check_question(const uint8_t *buf,
    _construct_domain_field(domain_buf, domain);
 
    if (strncmp(rqname, (char *)domain_buf, len)) {
-      return 0;
+      return -23;
    }
 
    if (!(rq->qtype==0 && rq->qclass==htons(1))) {
@@ -167,7 +172,7 @@ _response_fetch_res(const uint8_t *buf,
       //printf("prev_size: %d\n", prev_size);
        
       if (content_len <= (prev_size + 2 + (int)sizeof(dns_header_t))) {
-         return 0;
+         return -31;
       }
 
       rsp_aname = (char*)&buf[prev_size];
@@ -177,7 +182,7 @@ _response_fetch_res(const uint8_t *buf,
           content_len <= (prev_size + aname_size + _sizeof_dns_rr_data()))
       {
          //printf("aname_size %d\n", aname_size);
-         return 0;
+         return -32;
       }
 
       rsp_answer = (dns_rr_data_t*)&buf[prev_size + aname_size];
@@ -188,7 +193,7 @@ _response_fetch_res(const uint8_t *buf,
                          ntohs(rsp_answer->rdlen)))
       {
          //printf("incomplete DNS response 2\n");
-         return 0;
+         return -33;
       }
 
       const unsigned short v1 = ntohs(1);
@@ -205,7 +210,7 @@ _response_fetch_res(const uint8_t *buf,
    }
 
    //printf("unable to find IP record\n");
-   return 0;
+   return -34;
 }
 
 /* Public Interface
@@ -217,7 +222,7 @@ mdns_query_build(uint8_t *buf,
                  const char *domain)
 {
    if (!buf || qid==0 || !domain) {
-      return 0;
+      return -1;
    }
 
    uint8_t domain_buf[QUERY_DOMAIN_LEN];
@@ -225,7 +230,7 @@ mdns_query_build(uint8_t *buf,
    
    uint8_t dlen = _construct_domain_field(domain_buf, domain);
    if (dlen == 0) {
-      return 0;
+      return -2;
    }
 
    int query_size = sizeof(dns_header_t) + dlen + 1 + sizeof(dns_question_t);
@@ -277,13 +282,19 @@ mdns_response_parse(uint8_t *buf,
    if (!buf || content_len<=0 || query_size<=0 || !domain || !out_ipv4) {
       return 0;
    }
-   
-   if (_response_check_header(buf) &&
-       _response_check_question(buf, query_size, domain) &&
-       _response_fetch_res(buf, content_len, query_size, out_ipv4))
-   {
+
+   int ret_header = _response_check_header(buf);
+   int ret_question = _response_check_question(buf, query_size, domain);
+   int ret_res = _response_fetch_res(buf, content_len, query_size, out_ipv4);
+   if (ret_header > 0 && ret_question > 0 && ret_res > 0) {
       return 1;
    }
 
-   return 0;
+   if (ret_header <= 0) {
+      return ret_header;
+   }
+   if (ret_question <= 0) {
+      return ret_question;
+   }
+   return ret_res;
 }
