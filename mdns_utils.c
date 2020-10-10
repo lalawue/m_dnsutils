@@ -7,7 +7,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <arpa/inet.h>
 #include "mdns_utils.h"
 
 /* structures for DNS query
