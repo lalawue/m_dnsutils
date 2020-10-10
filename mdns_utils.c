@@ -130,14 +130,20 @@ _response_check_question(const uint8_t *buf,
                          int query_size,
                          const char *domain)
 {
-   char *rqname = (char*)&buf[sizeof(dns_header_t)];
-   dns_question_t *rq = (dns_question_t*)&buf[query_size - sizeof(dns_question_t)];
+   char *rqname = (char *)&buf[sizeof(dns_header_t)];
+   dns_question_t *rq = (dns_question_t *)&buf[query_size - sizeof(dns_question_t)];
 
    int len = strlen(domain);
-   if (strncmp(rqname, domain, len) ||
-       !(rq->qtype==0 && rq->qclass==htons(1)))
-   {
+   uint8_t domain_buf[QUERY_DOMAIN_LEN];
+   _construct_domain_field(domain_buf, domain);
+
+   if (strncmp(rqname, (char *)domain_buf, len)) {
       return 0;
+   }
+
+   if (!(rq->qtype==0 && rq->qclass==htons(1))) {
+      // ignore qtype and qclass
+      //return 0;
    }
    
    return 1;
@@ -248,12 +254,12 @@ mdns_query_build(uint8_t *buf,
    dns_question_t *q = (dns_question_t*)&buf[sizeof(dns_header_t) + dlen + 1];
    q->qtype = htons(1);         /* IPv4 */
    q->qclass = htons(1);        /* internet */
-   
+
    return query_size;
 }
 
 int
-mdns_response_fetch_id(const uint8_t *buf, int content_len) {
+mdns_response_fetch_qid(const uint8_t *buf, int content_len) {
    if (!buf) {
       return 0;
    }

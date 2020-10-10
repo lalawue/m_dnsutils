@@ -18,7 +18,7 @@
 int mdns_query_build(uint8_t *buf, unsigned short qid, const char *domain);
 
 /* -- fetch query id for later input query_size
- * buf: response buffer, must have size == 1024 byte
+ * buf: response buffer
  * content_len: valid content length
  * --
  * return: 0 for error, or qid from response
@@ -26,7 +26,7 @@ int mdns_query_build(uint8_t *buf, unsigned short qid, const char *domain);
 int mdns_response_fetch_qid(const uint8_t *buf, int content_len);
 
 /* -- 
- * buf: response buffer, must have size == 1024 byte
+ * buf: response buffer
  * content_len: valid content length
  * query_size: query_size for qid fetched before
  * domain: '0' terminated string for compare
